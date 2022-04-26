@@ -27,56 +27,92 @@ headers = {
 
 # 경기 메타 데이터
 # url example : https://api.kbl.or.kr/matches/S39G03N11?
-BASE_URL = 'https://api.kbl.or.kr/matches'
-MATCH_NUM = 'S39G03N11'
+def match_meta(MATCH_NUM):
+    response = requests.get(BASE_URL + '/' + MATCH_NUM + '/' + 'team-records', headers=headers)
+    # soup = BeautifulSoup(response.content, "html.parser")
 
-response = requests.get(BASE_URL + '/' + MATCH_NUM, headers=headers)
-soup = BeautifulSoup(response.content, "html.parser")
+    game_meta_data = eval(response.content)
+    pprint(game_meta_data)
 
-game_meta_data = eval(response.content)
-pprint(game_meta_data)
+    return game_meta_data
 
 # 경기 기록 데이터
 # url example : https://api.kbl.or.kr/matches/S39G03N11/team-records?
+def match_record(MATCH_NUM):
+    response = requests.get(BASE_URL + '/' + MATCH_NUM, headers=headers)
+    if response.status_code != 200:
+        return None
 
-response = requests.get(BASE_URL + '/' + MATCH_NUM + '/' + 'team-records', headers=headers)
-soup = BeautifulSoup(response.content, "html.parser")
-
-game_record_data = eval(response.content)
-pprint(game_record_data)
+    # soup = BeautifulSoup(response.content, "html.parser")
+    game_record_data = eval(response.content)
+    pprint(game_record_data)
+    return game_record_data
 
 # 득점 우위 데이터
 # url example : https://api.kbl.or.kr/matches/S39G03N11/leadtracks?
+def match_leadtrack(MATCH_NUM):
+    response = requests.get(BASE_URL + '/' + MATCH_NUM + '/' + 'leadtracks', headers=headers)
+    if response.status_code != 200:
+        return None
 
-response = requests.get(BASE_URL + '/' + MATCH_NUM + '/' + 'leadtracks', headers=headers)
-soup = BeautifulSoup(response.content, "html.parser")
+    # soup = BeautifulSoup(response.content, "html.parser")
+    leadtrack_data = eval(response.content)
+    pprint(leadtrack_data)
 
-leadtrack_data = eval(response.content)
-pprint(leadtrack_data)
+    return leadtrack_data
 
 # 베스트 플레이어 데이터
 # url example : https://api.kbl.or.kr/matches/S39G03N11/top-partplayers?
+def match_topplayer(MATCH_NUM):
+    response = requests.get(BASE_URL + '/' + MATCH_NUM + '/' + 'top-partplayers', headers=headers)
+    if response.status_code != 200:
+        return None
 
-response = requests.get(BASE_URL + '/' + MATCH_NUM + '/' + 'top-partplayers', headers=headers)
-soup = BeautifulSoup(response.content, "html.parser")
+    # soup = BeautifulSoup(response.content, "html.parser")
+    top_player_data = eval(response.content)
+    pprint(top_player_data)
 
-top_player_data = eval(response.content)
-pprint(top_player_data)
+    return top_player_data
 
 # 주요 선수 데이터
 # url example : https://api.kbl.or.kr/matches/S39G03N11/keyplayers?
+def match_keyplayer(MATCH_NUM):
+    response = requests.get(BASE_URL + '/' + MATCH_NUM + '/' + 'keyplayers', headers=headers)
+    if response.status_code != 200:
+        return None
 
-response = requests.get(BASE_URL + '/' + MATCH_NUM + '/' + 'keyplayers', headers=headers)
-soup = BeautifulSoup(response.content, "html.parser")
+    # soup = BeautifulSoup(response.content, "html.parser")
+    key_player_data = eval(response.content)
+    pprint(key_player_data)
 
-key_player_data = eval(response.content)
-pprint(key_player_data)
+    return key_player_data
+
+
 
 # 선수 스탯 데이터
 # url example : https://api.kbl.or.kr/matches/S39G03N11/players-stats?
 
-response = requests.get(BASE_URL + '/' + MATCH_NUM + '/' + 'players-stats', headers=headers)
-soup = BeautifulSoup(response.content, "html.parser")
+def match_playerstat(MATCH_NUM):
+    response = requests.get(BASE_URL + '/' + MATCH_NUM + '/' + 'players-stats', headers=headers)
+    if response.status_code != 200:
+        return None
 
-player_stats_data = eval(response.content)
-pprint(player_stats_data)
+    # soup = BeautifulSoup(response.content, "html.parser")
+    player_stats_data = eval(response.content)
+    pprint(player_stats_data)
+
+    return player_stats_data
+
+BASE_URL = 'https://api.kbl.or.kr/matches'
+MATCH_NUM_FORMAT = 'S{}G01N{}'
+
+for s in range(15, 39):
+    # 홀수 정규시즌 / 짝수 D 리그 - 2군 리그 사용할지 안할지 결정
+    for g in range(1, 271):
+        MATCH_NUM = MATCH_NUM_FORMAT.format(s, g)
+
+        meta = match_meta(MATCH_NUM)
+        record = match_record(MATCH_NUM)
+        stat = match_playerstat(MATCH_NUM)
+        if not meta or not record or not stat:
+            break
