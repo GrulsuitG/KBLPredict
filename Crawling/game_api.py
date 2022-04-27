@@ -117,8 +117,7 @@ sample = sample.keys()
 game_code = ['01', '03', '04', '08', '13']
 myDB = DB.HYGPDB()
 myDB.set_page_DB()
-# 17 - 20 실행
-for s in range(17, 40):
+for s in range(40, 41):
     # 홀수 정규시즌
     # 짝수 D 리그 - 2군 리그 사용할지 안할지 결정
     for g in game_code:
