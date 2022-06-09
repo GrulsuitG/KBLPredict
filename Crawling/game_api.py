@@ -239,7 +239,7 @@ def player_meta_toDB():
     game_code = ['01', '08']
     columns = ['backNum', 'img', 'pcode', 'playerFlag', 'pname', 'pos', 'tcode', 'tname', 'seasonCode']
 
-    for s in range(18, 41):
+    for s in range(17, 41):
         for g in game_code:
             df = pd.DataFrame(columns=columns)
             MATCH_NUM = MATCH_NUM_FORMAT.format(s, g)
@@ -290,13 +290,12 @@ def player_average_record_toDB():
 
 def player_record_toDB():
     myDB = DB.HYGPDB()
-    myDB.set_page_DB()
     sample = match_playerstat(MATCH_NUM_FORMAT.format(39, '01', 1))[0]['records']
     sample['pcode'] = 0
     sample['startFlag'] = 0
     sample['home_away'] = 0
-    game_code = ['01', '03', '04', '08', '13']
-    game_code = ['01']
+    # game_code = ['01', '03', '04', '08', '13']
+    game_code = ['13']
 
     for s in range(17, 41):
         for g in game_code:
@@ -314,10 +313,13 @@ def player_record_toDB():
 
                     df.loc[idx] = data
                     idx += 1
+                
 
                 df['gmkey'] = MATCH_NUM
                 if not df.empty:
                     df.to_sql(name='player_record', con=myDB.engine, if_exists='append', index=False, chunksize=1000)
-                print(MATCH_NUM)
-
-
+                    print(MATCH_NUM)
+                else:
+                    break
+    myDB.conn.close()
+player_record_toDB()
