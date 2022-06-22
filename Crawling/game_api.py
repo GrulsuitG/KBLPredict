@@ -153,20 +153,19 @@ def game_record_toDB():
     game_code = ['01', '03', '04', '08', '13']
     # game_code = ['04']
     myDB = DB.HYGPDB()
-    myDB.set_page_DB()
-    for s in range(39, 40):
+    for s in range(15, 41):
         # 홀수 정규시즌
         # 짝수 D 리그 - 2군 리그 사용할지 안할지 결정
         for g in game_code:
             df = pd.DataFrame(columns=sample)
             idx = 0
-            for n in range(1, 6):
+            for n in range(1, 275):
                 MATCH_NUM = MATCH_NUM_FORMAT.format(s, g, n)
                 meta = match_meta(MATCH_NUM)
                 record = match_record(MATCH_NUM)
                 # stat = match_playerstat(MATCH_NUM)
                 if not meta or not record:
-                    break
+                    continue
                 home_code = meta['teams']['home']['tcode']
                 away_code = meta['teams']['away']['tcode']
                 home_record = record[0]['records']
@@ -177,10 +176,13 @@ def game_record_toDB():
                 home_record['tcode'] = home_code
                 home_record['gmkey'] = MATCH_NUM
                 home_record['home_away'] = 'H'
+                home_record['loss'] = away_record['score']
 
                 away_record['tcode'] = away_code
                 away_record['gmkey'] = MATCH_NUM
                 away_record['home_away'] = 'A'
+                away_record['loss'] = home_record['score']
+
 
                 # temp = dict()
                 # temp['gmkey'] = MATCH_NUM
@@ -197,7 +199,7 @@ def game_record_toDB():
                 df.loc[idx + 1] = away_record
                 idx += 2
             # print(df)
-            df.to_sql(name='team_record_test2', con=myDB.engine, if_exists='append', index=False, chunksize=1000)
+            df.to_sql(name='team_record', con=myDB.engine, if_exists='append', index=False, chunksize=1000)
         print('season ', s)
 
 
@@ -210,8 +212,7 @@ def game_meta_toDB():
     # 08 : D리그 2차 13: 컵대회
     game_code = ['01', '03', '04', '08', '13']
     myDB = DB.HYGPDB()
-    myDB.set_page_DB()
-    for s in range(17, 41):
+    for s in range(15, 17):
         # 홀수 정규시즌
         # 짝수 D 리그 - 2군 리그 사용할지 안할지 결정
         for g in game_code:
@@ -230,7 +231,7 @@ def game_meta_toDB():
             if not df.empty:
                 df.to_sql(name='game_meta', con=myDB.engine, if_exists='append', index=False, chunksize=1000)
         print('season ', s)
-
+    myDB.conn.close()
 
 def player_meta_toDB():
     myDB = DB.HYGPDB()
@@ -256,16 +257,16 @@ def player_meta_toDB():
 
 def player_average_record_toDB():
     myDB = DB.HYGPDB()
-    myDB.set_page_DB()
     MATCH_NUM_FORMAT = 'S{}G{}'
     sample = player_average(MATCH_NUM_FORMAT.format(39, '01'))[0]['records']
     sample['pcode'] = 0
     sample['tcode'] = 0
     sample['gameCnt'] = 0
     sample['startCnt'] = 0
-    game_code = ['01', '03', '08']
+    game_code = ['01', '03', '08', '13']
+    # game_code = ['13']
 
-    for s in range(17, 41):
+    for s in range(15, 17):
         for g in game_code:
             idx = 0
             df = pd.DataFrame(columns=sample)
@@ -285,8 +286,10 @@ def player_average_record_toDB():
             df['seasonCode'] = MATCH_NUM
             if not df.empty:
                 df.to_sql(name='player_avg_record', con=myDB.engine, if_exists='append', index=False, chunksize=1000)
-            print(MATCH_NUM)
-
+                print(MATCH_NUM)
+            else:
+                break
+    myDB.conn.close()
 
 def player_record_toDB():
     myDB = DB.HYGPDB()
@@ -294,10 +297,10 @@ def player_record_toDB():
     sample['pcode'] = 0
     sample['startFlag'] = 0
     sample['home_away'] = 0
-    # game_code = ['01', '03', '04', '08', '13']
-    game_code = ['13']
+    game_code = ['01', '03', '04', '08', '13']
+    # game_code = ['13']
 
-    for s in range(17, 41):
+    for s in range(15, 17):
         for g in game_code:
             for n in range(1, 271):
                 idx = 0
@@ -322,4 +325,9 @@ def player_record_toDB():
                 else:
                     break
     myDB.conn.close()
-player_record_toDB()
+
+
+game_record_toDB()
+# game_meta_toDB()
+# player_record_toDB()
+# player_average_record_toDB()
