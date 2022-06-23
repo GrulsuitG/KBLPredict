@@ -147,6 +147,7 @@ def game_record_toDB():
     sample['tcode'] = ''
     sample['gmkey'] = ''
     sample['home_away'] = ''
+    sample['loss'] = 0
     sample = sample.keys()
     # 01 : 정규시즌 03 : 플레이오프 04: 챔피온 결정전
     # 08 : D리그 2차 13: 컵대회
@@ -164,8 +165,8 @@ def game_record_toDB():
                 meta = match_meta(MATCH_NUM)
                 record = match_record(MATCH_NUM)
                 # stat = match_playerstat(MATCH_NUM)
-                if not meta or not record:
-                    continue
+                if not record:
+                    break
                 home_code = meta['teams']['home']['tcode']
                 away_code = meta['teams']['away']['tcode']
                 home_record = record[0]['records']
@@ -198,9 +199,9 @@ def game_record_toDB():
                 df.loc[idx] = home_record
                 df.loc[idx + 1] = away_record
                 idx += 2
-            # print(df)
             df.to_sql(name='team_record', con=myDB.engine, if_exists='append', index=False, chunksize=1000)
         print('season ', s)
+    myDB.conn.close()
 
 
 def game_meta_toDB():
@@ -211,8 +212,9 @@ def game_meta_toDB():
     # 01 : 정규시즌 03 : 플레이오프 04: 챔피온 결정전
     # 08 : D리그 2차 13: 컵대회
     game_code = ['01', '03', '04', '08', '13']
+    game_code = ['04']
     myDB = DB.HYGPDB()
-    for s in range(15, 17):
+    for s in range(39, 40):
         # 홀수 정규시즌
         # 짝수 D 리그 - 2군 리그 사용할지 안할지 결정
         for g in game_code:
@@ -229,6 +231,7 @@ def game_meta_toDB():
                 df.loc[idx] = data
                 idx += 1
             if not df.empty:
+                # print(df)
                 df.to_sql(name='game_meta', con=myDB.engine, if_exists='append', index=False, chunksize=1000)
         print('season ', s)
     myDB.conn.close()
@@ -327,7 +330,7 @@ def player_record_toDB():
     myDB.conn.close()
 
 
-game_record_toDB()
-# game_meta_toDB()
+# game_record_toDB()
+game_meta_toDB()
 # player_record_toDB()
 # player_average_record_toDB()
