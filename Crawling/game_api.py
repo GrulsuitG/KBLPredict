@@ -257,7 +257,6 @@ def player_meta_toDB():
                 df.to_sql(name='player', con=myDB.engine, if_exists='append', index=False, chunksize=1000)
         print('season', s)
 
-
 def player_average_record_toDB():
     myDB = DB.HYGPDB()
     MATCH_NUM_FORMAT = 'S{}G{}'
@@ -267,12 +266,11 @@ def player_average_record_toDB():
     sample['gameCnt'] = 0
     sample['startCnt'] = 0
     game_code = ['01', '03', '08', '13']
-    # game_code = ['13']
 
-    for s in range(15, 17):
+    for s in range(15, 41):
         for g in game_code:
-            idx = 0
             df = pd.DataFrame(columns=sample)
+            idx = 0
             MATCH_NUM = MATCH_NUM_FORMAT.format(s, g)
             stats = player_average(MATCH_NUM)
 
@@ -289,9 +287,49 @@ def player_average_record_toDB():
             df['seasonCode'] = MATCH_NUM
             if not df.empty:
                 df.to_sql(name='player_avg_record', con=myDB.engine, if_exists='append', index=False, chunksize=1000)
-                print(MATCH_NUM)
-            else:
-                break
+        print(s)
+    myDB.conn.close()
+
+def player_total_average_record_toDB():
+    myDB = DB.HYGPDB()
+    MATCH_NUM_FORMAT = 'S{}G{}'
+    sample = player_average(MATCH_NUM_FORMAT.format(39, '01'))[0]['records']
+    sample['pcode'] = 0
+    sample['tcode'] = 0
+    sample['gameCnt'] = 0
+    sample['startCnt'] = 0
+    game_code = ['01', '03', '08', '13']
+
+    for s in range(15, 41):
+        df = pd.DataFrame(columns=sample)
+        idx = 0
+        players = dict()
+        for g in game_code:
+            MATCH_NUM = MATCH_NUM_FORMAT.format(s, g)
+            stats = player_average(MATCH_NUM)
+
+            for stat in stats:
+                # print(stat)
+
+                data = stat['records']
+                data['pcode'] = stat['player']['pcode']
+                players[stat['player']['pcode']] = stat['player']['tcode']
+                data['gameCnt'] = stat['gameCount']
+                data['startCnt'] = stat['startCount']
+
+                df.loc[idx] = data
+                idx += 1
+
+        if not df.empty:
+            df = df.groupby(['pcode'], ).sum()
+            df['seasonCode'] = s
+            df['pcode'] = df.index
+            df['tcode'] = ''
+            for pcode in df.index:
+                df.loc[df.pcode == pcode, ('tcode')] = players[pcode]
+            df.to_sql(name='player_total_avg_record', con=myDB.engine, if_exists='append', index=False, chunksize=1000)
+
+            print(s)
     myDB.conn.close()
 
 def player_record_toDB():
@@ -331,6 +369,7 @@ def player_record_toDB():
 
 
 # game_record_toDB()
-game_meta_toDB()
+# game_meta_toDB()
 # player_record_toDB()
 # player_average_record_toDB()
+player_total_average_record_toDB()
