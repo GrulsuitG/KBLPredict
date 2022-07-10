@@ -1,5 +1,7 @@
 import pandas as pd
 import DB
+import warnings
+warnings.simplefilter(action='ignore', category=FutureWarning)
 
 db = DB.MYDB()
 
@@ -68,4 +70,4 @@ if __name__ == "__main__":
                 except Exception as e:
                     print("Error = " + e, gmkey, tcode)
 
-        # result.to_csv("recent_avg_record.csv", mode="w")
+        result.to_csv("recent_avg_record.csv", mode="w")
