@@ -341,7 +341,7 @@ def player_record_toDB():
     game_code = ['01', '03', '04', '08', '13']
     # game_code = ['13']
 
-    for s in range(15, 17):
+    for s in range(17):
         for g in game_code:
             for n in range(1, 271):
                 idx = 0
