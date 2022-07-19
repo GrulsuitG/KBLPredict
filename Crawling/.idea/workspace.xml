@@ -3,7 +3,6 @@
   <component name="ChangeListManager">
     <list default="true" id="24e487aa-1977-44f1-8ac0-194ec4a32697" name="Changes" comment="api update">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/make_recent_record_csv.py" beforeDir="false" afterPath="$PROJECT_DIR$/make_recent_record_csv.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/model.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/model.ipynb" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -165,7 +164,8 @@
       <workItem from="1656415895452" duration="96000" />
       <workItem from="1656417144951" duration="680000" />
       <workItem from="1657019669216" duration="3385000" />
-      <workItem from="1657270528211" duration="811000" />
+      <workItem from="1657270528211" duration="1241000" />
+      <workItem from="1658027140645" duration="12000" />
     </task>
     <task id="LOCAL-00001" summary="gitignore update">
       <created>1650504087971</created>
