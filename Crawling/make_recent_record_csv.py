@@ -1,5 +1,7 @@
 import pandas as pd
 import DB
+import warnings
+warnings.simplefilter(action='ignore', category=FutureWarning)
 
 db = DB.MYDB()
 
@@ -17,7 +19,7 @@ def split_gmkey(gmkey: str):
 
 
 def get_gmkey_list():
-    db.cursor.execute("Select gmkey, gameDate, tcodeA, tcodeH FROM game_meta ORDER BY gameDate;")
+    db.cursor.execute("Select gmkey, gameDate, tcodeA, tcodeH FROM game_meta;")
 
     gmkey_list = list()
     gmkey_tcode_dict = dict()
@@ -35,6 +37,7 @@ if __name__ == "__main__":
     result = pd.DataFrame()
 
     for gmkey in gmkey_list:
+        print("현재 조회 gmkey : " + gmkey)
         gameDate = gmkey_tcode[gmkey][0]
 
         for i in range(1, 3):
@@ -44,9 +47,27 @@ if __name__ == "__main__":
                                        ORDER BY gameDate DESC LIMIT 1, 5;'''.format(gameDate, tcode, tcode))
 
             recent_gmkey_away = [item['gmkey'] for item in db.cursor.fetchall()]
-            recent_gmkey_away.reverse()
+            if recent_gmkey_away:
+                recent_gmkey_away.reverse()
+                if len(recent_gmkey_away) == 1:
+                    db.cursor.execute('''SELECT * FROM team_record WHERE tcode = {} and gmkey = '{}';'''.format(tcode, recent_gmkey_away[0]))
+                else:
+                    db.cursor.execute('''SELECT * FROM team_record WHERE tcode = {} and gmkey IN {};'''.format(tcode, tuple(recent_gmkey_away)))
 
-            db.curor.exexcute('''SELECT * FROM team_record WHERE tcode = {} and gmkey IN {};'''.format(tcode, tuple(recent_gmkey_away)))
-            recent_team_record_away = db.cursor.fetchall()
+                recent_team_record_away = pd.DataFrame(db.cursor.fetchall())
 
-            # TODO: 가져온 값 평균내서 데이터 프레임에 추가 -> CSV로 출력
+                try:
+                    mean = pd.DataFrame(recent_team_record_away.mean())
+                    mean = mean.transpose()
+                    mean.drop(columns=['team_record_idx'], inplace=True)
+                    mean.drop(columns=['tcode'], inplace=True)
+                    mean.insert(loc=0, column='tcode', value=tcode)
+                    mean.insert(loc=0, column='gmkey', value=gmkey)
+                    if result.empty:
+                        result = mean
+                    else:
+                        result = pd.concat([result, mean], ignore_index=True)
+                except Exception as e:
+                    print("Error = " + e, gmkey, tcode)
+
+        result.to_csv("recent_avg_record.csv", mode="w")
