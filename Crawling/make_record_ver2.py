@@ -6,31 +6,25 @@ import DB
 warnings.filterwarnings(action='ignore')
 
 #### 키플레이어 최근 경기 ####
-def get_keyplayer_data(start=0, verborse=False):
+def get_keyplayer_data_v1(start=0, verborse=False):
     db = DB.MYDB()
     db.cursor.execute("select * from game_meta where gameDate >= '20101015'")
     meta_data = db.cursor.fetchall()
-
-    season = 0
 
     df = pd.DataFrame()
     for idx, meta in enumerate(meta_data[start:]):
         print(idx, meta['gmkey'])
         gmkey = meta['gmkey']
-        season_key = gmkey[1:3]
-        if season != season_key:
-            season = season_key
-            db.cursor.execute("select pcode, home_away from player_record where gmkey like 'S{}%'".format(season))
-            player = pd.DataFrame(db.cursor.fetchall())
-            print(season_key)
+        db.cursor.execute("select pcode, home_away from player_record where gmkey = '{}'".format(gmkey))
+        player = pd.DataFrame(db.cursor.fetchall())
         if verborse:
             print(player)
+        
         h_player = tuple(player[player['home_away'] == '1']['pcode'])
         a_player = tuple(player[player['home_away'] == '2']['pcode'])
         gameDate = meta['gameDate']
 
-        # key_player =  tuple(get_recent_keyplayer(player, gameDate, db))
-        key_player =  tuple(get_recent_keyplayer(h_player, gameDate, db) | get_recent_keyplayer(a_player, gameDate, db))
+        key_player =  tuple(get_recent_keyplayer_v1(h_player, gameDate, db) | get_recent_keyplayer_v1(a_player, gameDate, db))
 
         db.cursor.execute("""
                     select avg(ast) as ast, avg(bs) as bs, avg(defr) as defr, avg(dk) as dk, avg(dkA) as dkA, avg(ef) as ef, 
@@ -58,7 +52,7 @@ def get_keyplayer_data(start=0, verborse=False):
     df.to_csv('key_player_recent5.csv')
     db.db.close()
 
-def get_recent_keyplayer(player, gameDate, db):
+def get_recent_keyplayer_v1(player, gameDate, db):
     db.cursor.execute("""
                     select *
                     from (
@@ -78,6 +72,76 @@ def get_recent_keyplayer(player, gameDate, db):
 
     return top_player
 
+
+def get_keyplayer_data_v2(start=0, verborse=False):
+    db = DB.MYDB()
+    db.cursor.execute("select * from game_meta where gameDate >= '20101015'")
+    meta_data = db.cursor.fetchall()
+
+    season = 0
+
+    df = pd.DataFrame()
+    for idx, meta in enumerate(meta_data[start:]):
+        print(idx, meta['gmkey'])
+        gmkey = meta['gmkey']
+        gameDate = meta['gameDate']
+        season_key = gmkey[1:3]
+
+        if season != season_key:
+            season = season_key
+            db.cursor.execute("select pcode, gmkey, home_away from player_record where gmkey like 'S{}%'".format(season))
+            player = pd.DataFrame(db.cursor.fetchall())
+            if verborse:
+                print(player)
+        
+        game_player = player[player['gmkey'] == gmkey]
+        h_player = tuple(game_player[game_player['home_away'] == '1']['pcode'])
+        a_player = tuple(game_player[game_player['home_away'] == '2']['pcode'])
+        if verborse:
+            print("total :", game_player)
+            print("home :", h_player)
+            print("away :", a_player)
+        key_player, game_record =  get_recent_keyplayer(h_player, a_player, gameDate, db)
+
+        data = game_record[game_record['pcode'].isin(key_player)]
+        data.rename(columns={'home_away':'tcode'}, inplace=True)
+        data.replace({"tcode" : '1'}, meta['tcodeH'], inplace=True)
+        data.replace({"tcode" : '2'}, meta['tcodeA'], inplace=True)
+        data.drop(columns=['a'], inplace=True)
+        df = pd.concat([df, data], ignore_index=True)
+    df.to_csv('key_player_recent5.csv')
+    db.db.close()
+
+def get_recent_keyplayer_v2(h_player, a_player, gameDate, db):
+    players = h_player + a_player
+    db.cursor.execute("""
+                    select *
+                    from (
+                        SELECT r.*, m.gameDate, rank() over(partition by r.pcode order by gameDate desc) as a
+                        FROM player_record r join game_meta m on r.gmkey = m.gmkey
+                        WHERE m.gameDate <= '{}'
+                            and r.pcode in {}
+                        ) as rankrow
+                    where rankrow.a <=6;
+                        """.format(gameDate, players))
+    all_data = pd.DataFrame(db.cursor.fetchall())
+    top_player = set()
+    iter = [h_player, a_player]
+    data = all_data[all_data['a'] != 1]
+    return_data = all_data[all_data['a'] == 1]
+    for i in range(2):
+        team_data = data[data['pcode'].isin(iter[i])].groupby('pcode').mean()
+
+        top_shoot = team_data.sort_values('trueShooting', ascending=False)[:1]
+        top_shoot = top_shoot.index if top_shoot['trueShooting'].values != 0 else []
+
+        top_ast = team_data.sort_values('astRatio', ascending=False)[:1]
+        top_ast = top_ast.index if top_ast['astRatio'].values != 0 else []
+
+        top_reb = team_data.sort_values('rebRatio', ascending=False)[:1]
+        top_reb = top_reb.index if top_reb['rebRatio'].values != 0 else []
+        
+        top_player |= set(top_shoot) | set(top_ast) | set(top_reb)
 
 #### 팀 최근 경기 #####
 def make_team_recent_data():
