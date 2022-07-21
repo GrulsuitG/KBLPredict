@@ -101,7 +101,7 @@ def get_keyplayer_data_v2(start=0, verborse=False):
             print("total :", game_player)
             print("home :", h_player)
             print("away :", a_player)
-        key_player, game_record =  get_recent_keyplayer(h_player, a_player, gameDate, db)
+        key_player, game_record =  get_recent_keyplayer_v2(h_player, a_player, gameDate, db)
 
         data = game_record[game_record['pcode'].isin(key_player)]
         data.rename(columns={'home_away':'tcode'}, inplace=True)
