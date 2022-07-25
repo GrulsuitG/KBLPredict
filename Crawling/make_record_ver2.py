@@ -108,7 +108,10 @@ def get_keyplayer_data_v2(start=0, verborse=False):
         data.replace({"tcode" : '1'}, meta['tcodeH'], inplace=True)
         data.replace({"tcode" : '2'}, meta['tcodeA'], inplace=True)
         data.drop(columns=['a'], inplace=True)
+        data = data.groupby('tcode',as_index=False).mean()
+        data['gmkey'] = gmkey
         df = pd.concat([df, data], ignore_index=True)
+        
     df.to_csv('key_player_recent5.csv')
     db.db.close()
 
@@ -142,6 +145,7 @@ def get_recent_keyplayer_v2(h_player, a_player, gameDate, db):
         top_reb = top_reb.index if top_reb['rebRatio'].values != 0 else []
         
         top_player |= set(top_shoot) | set(top_ast) | set(top_reb)
+    return top_player, return_data
 
 #### 팀 최근 경기 #####
 def make_team_recent_data():
