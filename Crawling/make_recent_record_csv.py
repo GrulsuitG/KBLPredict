@@ -43,6 +43,10 @@ if __name__ == "__main__":
         for i in range(1, 3):
             tcode = gmkey_tcode[gmkey][i]
 
+            db.cursor.execute('''SELECT score, loss FROM team_record WHERE gmkey='{}' and tcode={}'''.format(gmkey, tcode))
+            score_loss = db.cursor.fetchall()[0]
+            score, loss = score_loss['score'], score_loss['loss']
+
             db.cursor.execute('''SELECT gmkey FROM game_meta WHERE gamedate <= {} and (tcodeA = {} or tcodeH = {})
                                        ORDER BY gameDate DESC LIMIT 1, 5;'''.format(gameDate, tcode, tcode))
 
@@ -59,8 +63,9 @@ if __name__ == "__main__":
                 try:
                     mean = pd.DataFrame(recent_team_record_away.mean())
                     mean = mean.transpose()
-                    mean.drop(columns=['team_record_idx'], inplace=True)
-                    mean.drop(columns=['tcode'], inplace=True)
+                    mean.drop(columns=['team_record_idx', 'tcode', 'score', 'loss'], inplace=True)
+                    mean.insert(loc=0, column='loss', value=loss)
+                    mean.insert(loc=0, column='score', value=score)
                     mean.insert(loc=0, column='tcode', value=tcode)
                     mean.insert(loc=0, column='gmkey', value=gmkey)
                     if result.empty:
@@ -70,4 +75,4 @@ if __name__ == "__main__":
                 except Exception as e:
                     print("Error = " + e, gmkey, tcode)
 
-        result.to_csv("recent_avg_record.csv", mode="w")
+        result.to_csv("recent_avg_record_ver2.csv", mode="w")
