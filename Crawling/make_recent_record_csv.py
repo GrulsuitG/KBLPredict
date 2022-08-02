@@ -60,19 +60,48 @@ if __name__ == "__main__":
 
                 recent_team_record_away = pd.DataFrame(db.cursor.fetchall())
 
-                try:
-                    mean = pd.DataFrame(recent_team_record_away.mean())
-                    mean = mean.transpose()
-                    mean.drop(columns=['team_record_idx', 'tcode', 'score', 'loss'], inplace=True)
-                    mean.insert(loc=0, column='loss', value=loss)
-                    mean.insert(loc=0, column='score', value=score)
-                    mean.insert(loc=0, column='tcode', value=tcode)
-                    mean.insert(loc=0, column='gmkey', value=gmkey)
-                    if result.empty:
-                        result = mean
-                    else:
-                        result = pd.concat([result, mean], ignore_index=True)
-                except Exception as e:
-                    print("Error = " + e, gmkey, tcode)
+                recent_team_record_away.drop(columns=['team_record_idx', 'gmkey', 'tcode', 'home_away', 'score', 'loss'], inplace=True)
+                length = len(recent_team_record_away)
+                total = length * (length + 1) / 2
 
-        result.to_csv("recent_avg_record_ver2.csv", mode="w")
+                for i in range(length):
+                    value = recent_team_record_away.iloc[i, :].values
+                    # alpha : 가중치
+                    alpha = (i + 1) / total
+                    value = value * alpha
+
+                    if i == 0:
+                        row_data = value
+                    else:
+                        row_data += value
+
+                temp_df = pd.DataFrame([row_data], columns=recent_team_record_away.columns)
+                temp_df.insert(loc=0, column='loss', value=loss)
+                temp_df.insert(loc=0, column='score', value=score)
+                temp_df.insert(loc=0, column='tcode', value=tcode)
+                temp_df.insert(loc=0, column='gmkey', value=gmkey)
+
+                if result.empty:
+                    result = temp_df
+                else:
+                    result = pd.concat([result, temp_df], ignore_index=True)
+
+        result.to_csv("recent_avg_record_ver3.csv", mode="w")
+
+
+                # try:
+                #     mean = pd.DataFrame(recent_team_record_away.mean())
+                #     mean = mean.transpose()
+                #     mean.drop(columns=['team_record_idx', 'tcode', 'score', 'loss'], inplace=True)
+                #     mean.insert(loc=0, column='loss', value=loss)
+                #     mean.insert(loc=0, column='score', value=score)
+                #     mean.insert(loc=0, column='tcode', value=tcode)
+                #     mean.insert(loc=0, column='gmkey', value=gmkey)
+                #     if result.empty:
+                #         result = mean
+                #     else:
+                #         result = pd.concat([result, mean], ignore_index=True)
+                # except Exception as e:
+                #     print("Error = " + e, gmkey, tcode)
+
+        # result.to_csv("recent_avg_record_ver2.csv", mode="w")
