@@ -91,7 +91,7 @@ def match_keyplayer(MATCH_NUM):
 
     # soup = BeautifulSoup(response.content, "html.parser")
     key_player_data = eval(response.content)
-    pprint(key_player_data)
+    # pprint(key_player_data)
 
     return key_player_data
 
@@ -367,9 +367,29 @@ def player_record_toDB():
                     break
     myDB.conn.close()
 
+def keyplayer_count_toDB():
+    myDB = DB.HYGPDB()
+    for s in range(15, 40):
+        df = pd.DataFrame(columns=['gmkey', 'pcode', 'tcode' , 'seasonCode'])
+        idx = 0
+        for n in range(1, 275):
+            MATCH_NUM = MATCH_NUM_FORMAT.format(s, '01', n)
+            records = match_keyplayer(MATCH_NUM)
+            for record in records['home']:
+                record = record['player']
+                df.loc[idx] = [MATCH_NUM, record['pcode'], record['tcode'], str(s)]
+                idx += 1
+            for record in records['away']:
+                record = record['player']
+                df.loc[idx] = [MATCH_NUM, record['pcode'], record['tcode'], str(s)]
+                idx += 1
+            print(MATCH_NUM)
+        df.to_sql(name='keyplayer', con=myDB.engine, if_exists='append', index=False, chunksize=1000)
+    myDB.conn.close()
 
 # game_record_toDB()
 # game_meta_toDB()
 # player_record_toDB()
 # player_average_record_toDB()
-player_total_average_record_toDB()
+# player_total_average_record_toDB()
+keyplayer_count_toDB()
