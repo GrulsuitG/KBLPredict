@@ -43,9 +43,9 @@ def make_model(file_name):
     result['teamPossesion'] = item['fgtA'] + 0.44 * item['ftA'] - item['offr'] + item['tto']
 
     #PMG
-    # result['PMG'] = result['teamPossesion'] - item['fg'] - 0.77*(item['fgA'] - item['fg']) - 0.44 * item['ft'] - \
-    #     0.339 * (item['ftA'] - item['ft']) - item['to'] + 0.77 * item['offr'] + 0.55 * item['ast'] + \
-    #     item['stl'] + 0.23 * item['defr'] + 0.2 * item['foul'] + 0.7 * item['bs']
+    result['PMG'] = result['teamPossesion'] - item['fg'] - 0.77*(item['fgA'] - item['fg']) - 0.44 * item['ft'] - \
+        0.339 * (item['ftA'] - item['ft']) - item['to'] + 0.77 * item['offr'] + 0.55 * item['ast'] + \
+        item['stl'] + 0.23 * item['defr'] + 0.2 * item['foul'] + 0.7 * item['bs']
 
 
     result['win'] = item['score'] > item['loss']
