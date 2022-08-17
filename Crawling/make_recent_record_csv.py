@@ -19,7 +19,7 @@ def split_gmkey(gmkey: str):
 
 
 def get_gmkey_list():
-    db.cursor.execute("Select gmkey, gameDate, tcodeA, tcodeH FROM game_meta;")
+    db.cursor.execute("Select gmkey, gameDate, tcodeA, tcodeH FROM game_meta WHERE gameDate >= 20101015;")
 
     gmkey_list = list()
     gmkey_tcode_dict = dict()
