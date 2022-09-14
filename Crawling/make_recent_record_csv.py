@@ -50,22 +50,22 @@ if __name__ == "__main__":
             db.cursor.execute('''SELECT gmkey FROM game_meta WHERE gamedate <= {} and (tcodeA = {} or tcodeH = {})
                                        ORDER BY gameDate DESC LIMIT 1, 5;'''.format(gameDate, tcode, tcode))
 
-            recent_gmkey_away = [item['gmkey'] for item in db.cursor.fetchall()]
-            if recent_gmkey_away:
-                recent_gmkey_away.reverse()
-                if len(recent_gmkey_away) == 1:
-                    db.cursor.execute('''SELECT * FROM team_record WHERE tcode = {} and gmkey = '{}';'''.format(tcode, recent_gmkey_away[0]))
+            recent_gmkey = [item['gmkey'] for item in db.cursor.fetchall()]
+            if recent_gmkey:
+                recent_gmkey.reverse()
+                if len(recent_gmkey) == 1:
+                    db.cursor.execute('''SELECT * FROM team_record WHERE tcode = {} and gmkey = '{}';'''.format(tcode, recent_gmkey[0]))
                 else:
-                    db.cursor.execute('''SELECT * FROM team_record WHERE tcode = {} and gmkey IN {};'''.format(tcode, tuple(recent_gmkey_away)))
+                    db.cursor.execute('''SELECT * FROM team_record WHERE tcode = {} and gmkey IN {};'''.format(tcode, tuple(recent_gmkey)))
 
-                recent_team_record_away = pd.DataFrame(db.cursor.fetchall())
+                recent_team_record = pd.DataFrame(db.cursor.fetchall())
 
-                recent_team_record_away.drop(columns=['team_record_idx', 'gmkey', 'tcode', 'home_away', 'score', 'loss'], inplace=True)
-                length = len(recent_team_record_away)
+                recent_team_record.drop(columns=['team_record_idx', 'gmkey', 'tcode', 'home_away', 'score', 'loss'], inplace=True)
+                length = len(recent_team_record)
                 total = length * (length + 1) / 2
 
                 for i in range(length):
-                    value = recent_team_record_away.iloc[i, :].values
+                    value = recent_team_record.iloc[i, :].values
                     # alpha : 가중치
                     alpha = (i + 1) / total
                     value = value * alpha
@@ -75,9 +75,9 @@ if __name__ == "__main__":
                     else:
                         row_data += value
 
-                temp_df = pd.DataFrame([row_data], columns=recent_team_record_away.columns)
-                temp_df.insert(loc=0, column='loss', value=loss)
-                temp_df.insert(loc=0, column='score', value=score)
+                temp_df = pd.DataFrame([row_data], columns=recent_team_record.columns)
+                temp_df.insert(loc=0, column='gm_loss', value=loss)
+                temp_df.insert(loc=0, column='gm_score', value=score)
                 temp_df.insert(loc=0, column='tcode', value=tcode)
                 temp_df.insert(loc=0, column='gmkey', value=gmkey)
 
@@ -86,15 +86,15 @@ if __name__ == "__main__":
                 else:
                     result = pd.concat([result, temp_df], ignore_index=True)
 
-        result.to_csv("recent_avg_record_ver3.csv", mode="w")
+        result.to_csv("recent_avg_record_ver5.csv", mode="w")
 
 
                 # try:
-                #     mean = pd.DataFrame(recent_team_record_away.mean())
+                #     mean = pd.DataFrame(recent_team_record.mean())
                 #     mean = mean.transpose()
                 #     mean.drop(columns=['team_record_idx', 'tcode', 'score', 'loss'], inplace=True)
-                #     mean.insert(loc=0, column='loss', value=loss)
-                #     mean.insert(loc=0, column='score', value=score)
+                #     mean.insert(loc=0, column='gm_loss', value=loss)
+                #     mean.insert(loc=0, column='gm_score', value=score)
                 #     mean.insert(loc=0, column='tcode', value=tcode)
                 #     mean.insert(loc=0, column='gmkey', value=gmkey)
                 #     if result.empty:
@@ -104,4 +104,4 @@ if __name__ == "__main__":
                 # except Exception as e:
                 #     print("Error = " + e, gmkey, tcode)
 
-        # result.to_csv("recent_avg_record_ver2.csv", mode="w")
+        # result.to_csv("recent_avg_record_ver5.csv", mode="w")
