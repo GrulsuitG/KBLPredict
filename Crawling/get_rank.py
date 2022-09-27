@@ -1,5 +1,7 @@
 import numpy as np
+import pandas as pd
 import requests
+import copy
 
 from Crawling import DB
 
@@ -63,22 +65,76 @@ def insert_rank_data_to_db(seasonCode, tcode_list, tracks_arr):
     db.db.close()
 
 
+def get_team_record(seasonCode):
+    db = DB.MYDB()
+    db.cursor.execute("""SELECT gmkey, tcode, score, loss, IF(score > loss, 1, 0) AS win FROM team_record_new WHERE gmkey LIKE 'S{}%'""".format(seasonCode))
+    team_record = pd.DataFrame(db.cursor.fetchall())
+
+    db.db.close()
+
+    return team_record
+
+
+def make_team_rank(season_win):
+    temp = copy.deepcopy(season_win)
+    sorted_dict = sorted(temp.items(), key=lambda item: item[1], reverse=True)
+
+    totalRank, currentRank = 0, 0
+    rank = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+
+    for i in range(0, len(sorted_dict)):
+        totalRank += 1
+        if sorted_dict[i][1] == sorted_dict[i - 1][1]:
+            pass
+        else:
+            currentRank = totalRank
+
+        idx = TCODE_LIST.index(sorted_dict[i][0])
+        rank[idx] = currentRank
+
+    return rank
+
+
 if __name__ == "__main__":
+    db = DB.MYDB()
+
     seasonCode = "39"
+    game_num = 1
+    season_win = {"06": 0, "10": 0, "16": 0, "30": 0, "35": 0, "50": 0, "55": 0, "60": 0, "64": 0, "65": 0, "70": 0}
 
-    data = get_round_rank_data(seasonCode)
+    team_record = get_team_record(seasonCode)
 
-    tcode_list = []
-    tracks_list = []
+    for idx, game in team_record.iterrows():
+        game = game.to_dict()
 
-    for team in data:
-        tcode = team['tcode']
-        tracks = team['tracks']
+        if game['win']:
+            season_win[game['tcode']] += 1
 
-        tcode_list.append(tcode)
-        tracks_list.append(tracks)
+        if idx % 2 == 1:
+            game_num += 1
+            gmkey = "S" + seasonCode + "G01N" + str(game_num)
+            rank = make_team_rank(season_win)
+            sql = """INSERT INTO team_rank VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"""
+            value = (None, gmkey) + tuple(rank)
+            db.cursor.execute(sql, value)
+            print(gmkey + " INSERTED!")
 
-    tracks_arr = np.array(tracks_list)
-    tracks_arr = tracks_arr.T
+    db.db.commit()
+    db.db.close()
 
-    insert_rank_data_to_db(seasonCode, tcode_list, tracks_arr)
+    # data = get_round_rank_data(seasonCode)
+    #
+    # tcode_list = []
+    # tracks_list = []
+    #
+    # for team in data:
+    #     tcode = team['tcode']
+    #     tracks = team['tracks']
+    #
+    #     tcode_list.append(tcode)
+    #     tracks_list.append(tracks)
+    #
+    # tracks_arr = np.array(tracks_list)
+    # tracks_arr = tracks_arr.T
+    #
+    # insert_rank_data_to_db(seasonCode, tcode_list, tracks_arr)
