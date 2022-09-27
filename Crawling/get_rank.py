@@ -1,5 +1,3 @@
-from pprint import pprint
-
 import numpy as np
 import requests
 
@@ -66,7 +64,7 @@ def insert_rank_data_to_db(seasonCode, tcode_list, tracks_arr):
 
 
 if __name__ == "__main__":
-    seasonCode = "37"
+    seasonCode = "39"
 
     data = get_round_rank_data(seasonCode)
 
