@@ -138,8 +138,31 @@ def player_average(MATCH_NUM):
     return player_average_data
 
 
+# 팀별 상대 기록
+# url example : https://api.kbl.or.kr/leagues/S39G01N217/vs/team-statsByGmKey?teamA=30&teamB=35
+def relative_record(MATCH_NUM, teamA, teamB):
+    url = 'https://api.kbl.or.kr/leagues/{}/vs/team-statsByGmKey?teamA={}&teamB={}'.format(MATCH_NUM, teamA, teamB)
+    response = requests.get(url, headers=headers)
+
+    if response.status_code != 200:
+        return None
+
+    return eval(response.content)
+
+
 BASE_URL = 'https://api.kbl.or.kr/matches'
 MATCH_NUM_FORMAT = 'S{}G{}N{}'
+
+
+def relative_record_toDB():
+    game_code = '01'
+    for s in range(15, 16):
+        for n in range(1, 2):
+            MATCH_NUM = MATCH_NUM_FORMAT.format(s, game_code, n)
+            meta = match_meta(MATCH_NUM)['game']
+            tcodeA, tcodeH = meta['tcodeA'], meta['tcodeH']
+            records = relative_record(MATCH_NUM, tcodeH, tcodeA)
+            pprint(records)
 
 
 def game_record_toDB():
@@ -151,55 +174,105 @@ def game_record_toDB():
     sample = sample.keys()
     # 01 : 정규시즌 03 : 플레이오프 04: 챔피온 결정전
     # 08 : D리그 2차 13: 컵대회
-    game_code = ['01', '03', '04', '08', '13']
-    # game_code = ['04']
+    # game_code = ['01', '03', '04', '08', '13']
+    game_code = '01'
     myDB = DB.HYGPDB()
-    for s in range(15, 41):
+    for s in range(15, 41, 2):
         # 홀수 정규시즌
         # 짝수 D 리그 - 2군 리그 사용할지 안할지 결정
-        for g in game_code:
-            df = pd.DataFrame(columns=sample)
-            idx = 0
-            for n in range(1, 275):
-                MATCH_NUM = MATCH_NUM_FORMAT.format(s, g, n)
-                meta = match_meta(MATCH_NUM)
-                record = match_record(MATCH_NUM)
-                # stat = match_playerstat(MATCH_NUM)
-                if not record:
-                    break
-                home_code = meta['teams']['home']['tcode']
-                away_code = meta['teams']['away']['tcode']
-                home_record = record[0]['records']
-                away_record = record[1]['records']
+        df = pd.DataFrame(columns=sample)
+        idx = 0
+        for n in range(1, 271):
+            MATCH_NUM = MATCH_NUM_FORMAT.format(s, game_code, n)
+            meta = match_meta(MATCH_NUM)
+            record = match_record(MATCH_NUM)
+            if not record:
+                break
+            home_code = meta['teams']['home']['tcode']
+            away_code = meta['teams']['away']['tcode']
+            home_record = record[0]['records']
+            away_record = record[1]['records']
 
-                if record[1]['tcode'] == home_code:
-                    home_record, away_record = away_record, home_record
-                home_record['tcode'] = home_code
-                home_record['gmkey'] = MATCH_NUM
-                home_record['home_away'] = 'H'
-                home_record['loss'] = away_record['score']
+            if record[1]['tcode'] == home_code:
+                home_record, away_record = away_record, home_record
+            home_record['tcode'] = home_code
+            home_record['gmkey'] = MATCH_NUM
+            home_record['home_away'] = 'H'
+            home_record['loss'] = away_record['score']
 
-                away_record['tcode'] = away_code
-                away_record['gmkey'] = MATCH_NUM
-                away_record['home_away'] = 'A'
-                away_record['loss'] = home_record['score']
+            away_record['tcode'] = away_code
+            away_record['gmkey'] = MATCH_NUM
+            away_record['home_away'] = 'A'
+            away_record['loss'] = home_record['score']
+
+            # temp = dict()
+            # temp['gmkey'] = MATCH_NUM
+            # for key, value in home_record.items():
+            #     if key == 'gmkey':
+            #         continue
+            #     temp['h_'+key] = value
+            # for key, value in away_record.items():
+            #     if key == 'gmkey':
+            #         continue
+            #     temp['a_'+key] = value
+            # df = df.append(temp, ignore_index=True)
+            df.loc[idx] = home_record
+            df.loc[idx + 1] = away_record
+            idx += 2
+        df.to_sql(name='team_record_new', con=myDB.engine, if_exists='append', index=False, chunksize=1000)
+        print('season ', s)
+    myDB.conn.close()
 
 
-                # temp = dict()
-                # temp['gmkey'] = MATCH_NUM
-                # for key, value in home_record.items():
-                #     if key == 'gmkey':
-                #         continue
-                #     temp['h_'+key] = value
-                # for key, value in away_record.items():
-                #     if key == 'gmkey':
-                #         continue
-                #     temp['a_'+key] = value
-                # df = df.append(temp, ignore_index=True)
-                df.loc[idx] = home_record
-                df.loc[idx + 1] = away_record
-                idx += 2
-            df.to_sql(name='team_record', con=myDB.engine, if_exists='append', index=False, chunksize=1000)
+def game_record_merge_toDB():
+    sample = match_record(MATCH_NUM_FORMAT.format(39, '01', 1))[0]['records']
+    sample['tcode'] = ''
+    sample['gmkey'] = ''
+    sample['home_away'] = ''
+    sample['loss'] = 0
+    sample = sample.keys()
+    # 01 : 정규시즌 03 : 플레이오프 04: 챔피온 결정전
+    # 08 : D리그 2차 13: 컵대회
+    # game_code = ['01', '03', '04', '08', '13']
+    game_code = '01'
+    myDB = DB.HYGPDB()
+    for s in range(15, 41, 2):
+        # 홀수 정규시즌
+        # 짝수 D 리그 - 2군 리그 사용할지 안할지 결정
+        df = pd.DataFrame(columns=sample)
+        idx = 0
+        for n in range(1, 271):
+            MATCH_NUM = MATCH_NUM_FORMAT.format(s, game_code, n)
+            meta = match_meta(MATCH_NUM)
+            record = match_record(MATCH_NUM)
+            if not record:
+                break
+            home_code = meta['teams']['home']['tcode']
+            away_code = meta['teams']['away']['tcode']
+            home_record = record[0]['records']
+            away_record = record[1]['records']
+
+            if record[1]['tcode'] == home_code:
+                home_record, away_record = away_record, home_record
+            home_record['tcode'] = home_code
+            away_record['tcode'] = away_code
+
+            temp = dict()
+            temp['gmkey'] = MATCH_NUM
+            for key, value in home_record.items():
+                if key == 'gmkey':
+                    continue
+                temp['h_' + key] = value
+            for key, value in away_record.items():
+                if key == 'gmkey':
+                    continue
+                temp['a_' + key] = value
+            df = df.append(temp, ignore_index=True)
+            # df.loc[idx] = home_record
+            # df.loc[idx + 1] = away_record
+            # idx += 2
+        print(df)
+        # df.to_sql(name='team_record_new', con=myDB.engine, if_exists='append', index=False, chunksize=1000)
         print('season ', s)
     myDB.conn.close()
 
@@ -211,30 +284,30 @@ def game_meta_toDB():
                'seasonName', 'stadiumname'}
     # 01 : 정규시즌 03 : 플레이오프 04: 챔피온 결정전
     # 08 : D리그 2차 13: 컵대회
-    game_code = ['01', '03', '04', '08', '13']
-    game_code = ['04']
+    # game_code = ['01', '03', '04', '08', '13']
+    game_code = '01'
     myDB = DB.HYGPDB()
-    for s in range(39, 40):
+    for s in range(15, 41, 2):
         # 홀수 정규시즌
         # 짝수 D 리그 - 2군 리그 사용할지 안할지 결정
-        for g in game_code:
-            df = pd.DataFrame(columns=columns)
-            idx = 0
-            for n in range(1, 271):
-                MATCH_NUM = MATCH_NUM_FORMAT.format(s, g, n)
-                meta = match_meta(MATCH_NUM)
-                # pprint(meta)
+        df = pd.DataFrame(columns=columns)
+        idx = 0
+        for n in range(1, 271):
+            MATCH_NUM = MATCH_NUM_FORMAT.format(s, game_code, n)
+            meta = match_meta(MATCH_NUM)
+            # pprint(meta)
 
-                if meta.get('code'):
-                    break
-                data = meta['game']
-                df.loc[idx] = data
-                idx += 1
-            if not df.empty:
-                # print(df)
-                df.to_sql(name='game_meta', con=myDB.engine, if_exists='append', index=False, chunksize=1000)
+            if meta.get('code'):
+                break
+            data = meta['game']
+            df.loc[idx] = data
+            idx += 1
+        if not df.empty:
+            # print(df)
+            df.to_sql(name='game_meta_new', con=myDB.engine, if_exists='append', index=False, chunksize=1000)
         print('season ', s)
     myDB.conn.close()
+
 
 def player_meta_toDB():
     myDB = DB.HYGPDB()
@@ -256,6 +329,7 @@ def player_meta_toDB():
             if not df.empty:
                 df.to_sql(name='player', con=myDB.engine, if_exists='append', index=False, chunksize=1000)
         print('season', s)
+
 
 def player_average_record_toDB():
     myDB = DB.HYGPDB()
@@ -289,6 +363,7 @@ def player_average_record_toDB():
                 df.to_sql(name='player_avg_record', con=myDB.engine, if_exists='append', index=False, chunksize=1000)
         print(s)
     myDB.conn.close()
+
 
 def player_total_average_record_toDB():
     myDB = DB.HYGPDB()
@@ -332,6 +407,7 @@ def player_total_average_record_toDB():
             print(s)
     myDB.conn.close()
 
+
 def player_record_toDB():
     myDB = DB.HYGPDB()
     sample = match_playerstat(MATCH_NUM_FORMAT.format(39, '01', 1))[0]['records']
@@ -357,7 +433,6 @@ def player_record_toDB():
 
                     df.loc[idx] = data
                     idx += 1
-                
 
                 df['gmkey'] = MATCH_NUM
                 if not df.empty:
@@ -367,10 +442,11 @@ def player_record_toDB():
                     break
     myDB.conn.close()
 
+
 def keyplayer_count_toDB():
     myDB = DB.HYGPDB()
     for s in range(15, 40):
-        df = pd.DataFrame(columns=['gmkey', 'pcode', 'tcode' , 'seasonCode'])
+        df = pd.DataFrame(columns=['gmkey', 'pcode', 'tcode', 'seasonCode'])
         idx = 0
         for n in range(1, 275):
             MATCH_NUM = MATCH_NUM_FORMAT.format(s, '01', n)
@@ -387,9 +463,11 @@ def keyplayer_count_toDB():
         df.to_sql(name='keyplayer', con=myDB.engine, if_exists='append', index=False, chunksize=1000)
     myDB.conn.close()
 
+
 # game_record_toDB()
-# game_meta_toDB()
+game_meta_toDB()
 # player_record_toDB()
 # player_average_record_toDB()
 # player_total_average_record_toDB()
-keyplayer_count_toDB()
+# keyplayer_count_toDB()
+# relative_record_toDB()
