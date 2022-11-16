@@ -71,7 +71,7 @@ def make_model(item):
 
 def make_model_with_baseline(game_num):
     baseline = pd.read_csv('baseline.csv')
-    target = pd.read_csv('recent_avg_record_ver7_{}game.csv'.format(game_num), index_col= 0)
+    target = pd.read_csv('recent_avg_record_ver8_{}game.csv'.format(game_num), index_col= 0)
     
     #신생 팀 첫번째 기록 제거
     target = target[target['gmkey'] != 'S39G01N3'].reset_index()
@@ -114,20 +114,6 @@ def test_and_score(X, y):
 if __name__ == "__main__":
 
     for game_num in range(3, 16):
-    #     df = pd.read_csv("recent_avg_record_ver6_{}game.csv".format(str(game_num)))
-    #     index = ['S18G01N1', 'S26G01N2', 'S26G01N3', 'S28G01N2', 'S28G01N3',
-    #    'S36G01N1', 'S37G13N2', 'S39G13N2', 'S40G01N1']
-    #     df = df.drop(index = [540, 3071, 3072, 3693, 3694, 5957, 6588, 7195, 7220])
-    #     a_team_data = df[df.index % 2 == 0].reset_index().drop( columns= ['index', 'Unnamed: 0'])
-    #     h_team_data = df[df.index % 2 != 0].reset_index().drop( columns= ['index', 'Unnamed: 0'])
-    #     home_data, win = make_model(data=h_team_data)
-    #     away_data, _ = make_model(data=a_team_data)
-    #     data = pd.concat([home_data, away_data], axis=1)
-    #     data['win'] = win
-    #     # print(data)
-    #     X, y = data.iloc[:, :-1], data.iloc[:, -1]
-    #     # X, y = make_model("recent_avg_record_ver5_{}game.csv".format(str(game_num)))
-    #     score = test_and_score(X, y)
         score = 0
         for _ in range(100):
             score += make_model_with_baseline(game_num)
